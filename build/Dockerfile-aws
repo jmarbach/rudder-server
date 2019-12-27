@@ -1,0 +1,3 @@
+FROM scratch
+ADD rudder-server /
+CMD ["/rudder-server"]
