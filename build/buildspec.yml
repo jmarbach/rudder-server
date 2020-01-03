@@ -11,7 +11,7 @@ phases:
     commands:
       - ls
       - export GO111MODULE=on
-      - CGO_ENABLED=0 GOOS=linux go build -mod vendor -a -installsuffix cgo
+      - go build -mod vendor
       - echo build Docker image on `date`
       - docker build -t rudder-server:latest -f build/Dockerfile-aws .
       - docker tag rudder-server:latest rudderlabs/rudder-server:latest

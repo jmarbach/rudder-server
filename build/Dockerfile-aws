@@ -1,3 +1,4 @@
 FROM alpine:latest
 ADD rudder-server /
+ADD build/wait-for /
 CMD ["/rudder-server"]
