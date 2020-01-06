@@ -5,6 +5,8 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"net/http/pprof"
+	"runtime"
 	"strconv"
 	"sync"
 	"sync/atomic"
@@ -56,6 +58,7 @@ var (
 	enableDedup                               bool
 	enableRateLimit                           bool
 	dedupWindow                               time.Duration
+	isDebugModeEnabled                        bool
 )
 
 // CustomVal is used as a key in the jobsDB customval column
@@ -88,6 +91,7 @@ func loadConfig() {
 	dedupWindow = config.GetDuration("Gateway.dedupWindowInS", time.Duration(86400))
 	// Enable rate limit on incoming events. false by default
 	enableRateLimit = config.GetBool("Gateway.enableRateLimit", false)
+	isDebugModeEnabled = config.GetEnvAsBool("RUDDER_DEBUG", false)
 }
 
 func init() {
@@ -429,6 +433,7 @@ func (gateway *HandleT) webHandler(w http.ResponseWriter, r *http.Request, reqTy
 
 func (gateway *HandleT) healthHandler(w http.ResponseWriter, r *http.Request) {
 	var json = []byte(`{"server":"UP","db":"UP"}`)
+	json, _ = sjson.SetBytes(json, "goroutines", runtime.NumGoroutine())
 	if !gateway.jobsDB.CheckPGHealth() {
 		json, _ = sjson.SetBytes(json, "db", "DOWN")
 	}
@@ -453,6 +458,19 @@ func (gateway *HandleT) startWebHandler() {
 	http.HandleFunc("/health", gateway.healthHandler)
 
 	backendconfig.WaitForConfig()
+
+	// Register pprof handlers if application is in debug mode
+	if isDebugModeEnabled {
+		http.HandleFunc("/r/debug/pprof/", pprof.Index)
+		http.HandleFunc("/r/debug/pprof/cmdline", pprof.Cmdline)
+		http.HandleFunc("/r/debug/pprof/profile", pprof.Profile)
+		http.HandleFunc("/r/debug/pprof/symbol", pprof.Symbol)
+
+		http.Handle("/r/debug/pprof/goroutine", pprof.Handler("goroutine"))
+		http.Handle("/r/debug/pprof/heap", pprof.Handler("heap"))
+		http.Handle("/r/debug/pprof/threadcreate", pprof.Handler("threadcreate"))
+		http.Handle("/r/debug/pprof/block", pprof.Handler("block"))
+	}
 
 	c := cors.New(cors.Options{
 		AllowOriginFunc:  reflectOrigin,

@@ -24,6 +24,7 @@ services:
       - build/docker.env
     environment:
       - JOBS_DB_HOST=db
+      - RUDDER_DEBUG=true
   d-transformer:
     build:
       context: ./rudder-transformer/
