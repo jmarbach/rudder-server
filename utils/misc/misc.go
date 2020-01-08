@@ -90,6 +90,7 @@ func AssertError(err error) {
 		debug.PrintStack()
 		defer bugsnag.AutoNotify()
 		RecordAppError(err)
+		logger.Fatal(err)
 		panic(err)
 	}
 }
